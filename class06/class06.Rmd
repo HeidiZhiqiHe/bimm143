@@ -1,0 +1,90 @@
+---
+title: "Class6RFunction"
+author: "zqh"
+date: "April 18, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+###About
+This is my **class 6** r markdown document with my *code* and notes for the day.
+
+```{r}
+plot(1:10, 1:10)
+```
+
+## Read file practice
+###text1
+```{r}
+read.csv("test1.txt", header=TRUE, sep = ",")
+```
+### text2
+```{r}
+read.csv("test2.txt", header=TRUE, sep = "$")
+```
+
+### text3
+```{r}
+read.csv("test3.txt", header = FALSE, sep = "")
+```
+
+```{r}
+philCheck <- function(x,y,z){
+result <- (x|(y|z))
+return (result)
+
+}
+
+philCheck(TRUE, FALSE, FALSE)
+```
+
+```{r}
+truthmatrix <- matrix(nrow=8, ncol = 3, byrow = FALSE)
+
+rown <-1:8
+rownl <- length(rown)
+for (i in rown){
+  if ((i)/(rownl/2)<=1){
+    truthmatrix [i ,1] <- TRUE
+  }
+  else{
+    truthmatrix[i ,1] <-FALSE
+  }
+  if ((i-1)%%4<2){
+    truthmatrix [i,2] <-TRUE
+  }
+  else{
+    truthmatrix [i,2] <- FALSE
+  }
+  if (i%%2==1){
+    truthmatrix [i,3] <- TRUE
+  }
+  else{
+    truthmatrix [i,3] <-FALSE
+  }
+  
+}
+
+```
+
+```{r}
+rescale <- function(x, na.rm=TRUE, plot = TRUE){
+  rng <- range(x, na.rm = na.rm)
+  print ("Hello")
+  answer <-(x-rng[1])/(rng[2]-rng[1])
+  print ("is it me you are looking for?")
+  if(plot){
+    plot(answer, type = "b", lwd=4)
+  }
+  print("I can see it in")
+  return(answer)
+  
+}
+
+rescale(1:10)
+
+```
+
+
