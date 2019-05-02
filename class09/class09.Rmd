@@ -1,0 +1,127 @@
+---
+title: "class09"
+author: "zqh"
+date: "April 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#read data
+wisc.df <- read.csv("https://bioboot.github.io/bimm143_W18/class-material/WisconsinCancer.csv")
+#convert to matrix
+wisc.data <- as.matrix(wisc.df[,3:32])
+#assign id names to wisc.data rows
+rownames(wisc.data)<-wisc.df$id
+#diagnosis 1 if M, 0 otherwise
+diagnosis <- as.numeric(wisc.df$diagnosis =="M")
+
+```
+
+```{r}
+#Q1. How many observations are in this dataset?
+paste0("There are ",nrow(wisc.df)," observations")
+#Q2. How many variables/features in the data are suffixed with _mean?
+paste0("There are ", length(grep("mean",colnames(wisc.data))), " variables suffixed with _mean")
+#Q3. How many of the observations have a malignant diagnosis?
+paste0("There are ", sum(diagnosis), " malignant diagnosis")
+```
+
+###PCA prep
+```{r}
+colMeans(wisc.data)
+apply(wisc.data,2,sd)
+```
+###PCA
+```{r}
+wisc.pr <- prcomp(x = wisc.data,scale. = TRUE)
+summary(wisc.pr)
+
+
+print("44.27% variation is captured by pc1")
+print("3 PCs are required to describe 70% variance")
+print("7 PCs are required to describe 90% variance")
+```
+
+```{r}
+plot(wisc.pr$x[,1],wisc.pr$x[,2], col=diagnosis+1, 
+     xlab = "PC1", ylab = "PC2")
+plot(wisc.pr$x[,c(1,3)], col=diagnosis +1,
+     xlab="PC1", ylab="PC3")
+biplot(wisc.pr)
+
+print("PC1PC2 plot is more spread out than PC1PC3 plot")
+```
+
+```{r}
+par(mfcol=c(1,2))
+pr_var <- wisc.pr$sdev^2
+pve<-(pr_var/sum(pr_var))*100
+
+barplot(pve,ylab= "precent of variance explained",
+        names.arg=paste0("PC",1:length(pve)), las=2, ylim = c(0,100))
+plot(cumsum(pve), type="o")
+
+```
+```{r}
+#dist <- dist(wisc.pr$x[,c(1,2)])
+#tree <-hclust(dist)
+#wisc.hclust.clusters <- cutree(tree = tree,k = 4)
+#table(wisc.hclust.clusters,diagnosis)
+
+data.scaled <-scale(wisc.data)
+data.dist <-dist(data.scaled)
+wisc.hclust <- hclust(data.dist)
+cut <- cutree(tree = wisc.hclust, k=4)
+
+plot(wisc.hclust)
+abline(h = 19, col="red", lty=2)
+table(cut,diagnosis)
+```
+```{r}
+wisc.km <-kmeans(data.scaled, centers=2, nstart=20)
+k_table <-as.matrix(table(wisc.km$cluster, diagnosis))
+k_table
+```
+
+```{r}
+prhc <-wisc.pr$x[,1:7]
+prhc_dist <- dist(prhc)
+tree2 <- hclust(prhc_dist, method="ward.D2")
+plot(tree2)
+cut2 <-cutree(tree2, k=2)
+h_table<-as.matrix(table(cut2, diagnosis))
+h_table
+plot(wisc.pr$x[,1:2],col=cut2)
+library(rgl)
+plot3d(wisc.pr$x[,1:3], xlab = "PC1", ylab="PC2", zlab="PC3", cex=1.5, size=1, type="s", col=diagnosis+1)
+```
+
+###sensitivity and specificity
+```{r}
+k_table
+h_table
+#sensitivity
+k_sens <- k_table[1,2]/sum(k_table[,2])
+h_sens <- h_table[1,2]/sum(h_table[,2])
+k_sens<h_sens
+
+#specificity
+k_spe <- k_table[2,1]/sum(k_table[,1])
+h_spe<- h_table[2,1]/sum(h_table[,1])
+k_spe < h_spe
+```
+
+##Prediction
+```{r}
+new <-read.csv("https://tinyurl.com/new-samples-CSV")
+npc<-predict(wisc.pr,newdata=new)
+npc
+plot(wisc.pr$x[,1:2], col=cut2)
+points(npc[,1],npc[,2],col=c("blue","green"),pch=16)
+print("prioritize second patient")
+
+```
