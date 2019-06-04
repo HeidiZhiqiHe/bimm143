@@ -36,5 +36,3 @@ analyze_protein(protein_vec)
 ```
 
 
-
-```
