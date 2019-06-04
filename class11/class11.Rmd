@@ -1,0 +1,79 @@
+---
+title: "Untitled"
+author: "zqh"
+date: "May 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+db <- read.csv("Data Export Summary.csv",header = TRUE, row.names = 1)
+head(db)
+
+
+#Move this CSV file into your RStudio project
+#and determine the percentage of structures solved by X-Ray and Electron Microscopy.
+prop_type <- (db$Total/sum(db$Total))
+prop_type
+
+#From the website what proportion of structures are protein?
+prop_protein <- (sum(db$Proteins)/sum(db$Total))
+prop_protein
+```
+
+```{r}
+#read table with datapasta package
+
+library(datapasta)
+#Addins > paste as data frame
+tmp <-data.frame(stringsAsFactors=FALSE,
+   Experimental.Method = c("X-Ray", "NMR", "Electron Microscopy", "Other",
+                           "Multi Method", "R_Total"),
+              Proteins = c(126880, 11062, 2277, 256, 129, 140604),
+         Nucleic.Acids = c(2012, 1279, 31, 4, 5, 3331),
+    Protein_NA.Complex = c(6547, 259, 800, 6, 2, 7614),
+                 Other = c(8, 8, 0, 13, 1, 30),
+                 C_Total = c(135447, 12608, 3108, 279, 137, 151579)
+)
+
+```
+
+>Q2: Type HIV in the PDB website search box on the home page and determine how many
+HIV-1 protease structures are in the current PDB?
+
+>A: There are 1157 non-redundant HIV-1 protease
+
+```{r}
+#Extract protein and ligand portion of 1hsg
+library(bio3d)
+pdb <-read.pdb("1hsg")
+prot.pdb <- atom.select(pdb, "protein", value=TRUE)
+write.pdb(prot.pdb, file = "1hsg_protein.pdb")
+lig.pdb <- atom.select(pdb,  "ligand", value=TRUE)
+write.pdb(lig.pdb, file = "1hsg_ligand.pdb")
+```
+
+```{r}
+#obtain sequence from ncbi
+aa <-get.seq("1ake_A")
+```
+
+```{r}
+#blast
+b <- blast.pdb(aa)
+```
+```{r}
+hits <- plot (b)
+head(hits$pdb.id)
+files <- get.pdb(hits$pdb.id, path = "pdbs", split=TRUE, gzip = TRUE)
+pdbs <- pdbaln(files)
+ids <- basename.pdb((pdbs$id))
+plot(pdbs, labels = ids)
+```
+
+

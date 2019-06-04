@@ -1,0 +1,197 @@
+---
+title: "class14"
+author: "zqh"
+date: "May 14, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data <- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv", header = TRUE, sep = ",")
+head(data)
+```
+
+How many genotypes are there?
+```{r}
+table(data$Genotype..forward.strand.)
+```
+
+proportion of percent of total for each genotype
+```{r}
+(table(data$Genotype..forward.strand.)/nrow(data))*100
+```
+
+```{r}
+library(gtools)
+library(seqinr)
+```
+
+```{r}
+result <-read.table("https://bioboot.github.io/bimm143_S18/class-material/rs8067378_ENSG00000172057.6.txt", header = TRUE, sep = " ")
+
+```
+
+```{r}
+summary(result)
+
+```
+
+```{r}
+inds <- result$geno == "G/G"
+summary(result[inds,"exp"])
+```
+
+```{r}
+indsag <- result$geno == "A/G"
+summary(result[indsag,"exp"])
+```
+
+```{r}
+indsaa <- result$geno == "A/A"
+summary(result[indsaa,"exp"])
+```
+
+```{r}
+library(BiocManager)
+library(DESeq2)
+```
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE)
+metadata <-read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+head(counts)
+head(metadata)
+```
+metadata file tells us which columns of the countdata file is control or treated
+control mean
+```{r}
+control <-metadata[metadata[,"dex"]=="control",]
+control.mean <- rowSums(counts[,control$id])/4
+names(control.mean) <-counts$ensgene
+```
+
+treated mean
+```{r}
+treated <-metadata[metadata[,"dex"]=="treated",]
+treated.mean <-rowSums(counts[,treated$id])/nrow(treated)
+names(treated.mean)<-counts$ensgene
+#store control.mean and treated.mean together as data frame
+meancounts<- data.frame(control.mean, treated.mean)
+colSums(meancounts)
+```
+
+generate scatter plot of treatment v control on logarithmic scale
+```{r}
+plot(meancounts$control.mean, meancounts$treated.mean, log="xy")
+```
+
+```{r}
+meancounts$log2fc <-log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
+zero.vals <-which(meancounts[,1:2]==0, arr.ind = TRUE)
+to.rm <-unique(zero.vals[,1])
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+```
+
+```{r}
+#how many genes up regulated
+#2 is a conventional cutline
+up.ind <- mycounts$log2fc >2
+sum(up.ind)
+
+#how many genes down regulated
+down.ind <- mycounts$log2fc <(-2)
+sum(down.ind)
+```
+
+```{r}
+anno <- read.csv("annotables_grch38.csv")
+head(anno)
+```
+
+use merge function to add the annotation data from tge anno object to our RNA-Seq results in mycounts
+```{r}
+mycounts.anno <- merge(mycounts, anno,by.x="row.names" , by.y= "ensgene")
+mycounts.anno
+```
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+```{r}
+columns(org.Hs.eg.db)
+```
+we will use the **mapIds()** function from bioconductor to add annotation data to our results
+```{r}
+mycounts$symbol <-mapIds(org.Hs.eg.db,
+                         keys=row.names(mycounts),
+                         column="SYMBOL",
+                         keytype="ENSEMBL",
+                         multiVals="first")
+mycounts$entrez <-mapIds(org.Hs.eg.db,
+                         keys=row.names(mycounts),
+                         column="ENTREZID",
+                         keytype="ENSEMBL",
+                         multiVals="first")
+mycounts$uniport <-mapIds(org.Hs.eg.db,
+                         keys=row.names(mycounts),
+                         column="UNIPROT",
+                         keytype="ENSEMBL",
+                         multiVals="first")
+```
+
+
+```{r}
+head(mycounts[up.ind,])
+```
+
+```{r}
+library(DESeq2)
+citation("DESeq2")
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex, 
+                              tidy=TRUE)
+dds <-DESeq(dds)
+```
+
+```{r}
+sizeFactors(dds)
+dispersions(dds)
+res <-results(dds)
+```
+```{r}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+res05<-as.data.frame(res05)
+res01 <- as.data.frame(results(dds, alpha=0.01))
+head(res01)
+
+```
+ sort result by p-value
+```{r}
+ord.inds <-order(res01$padj)
+res01$sig <- res01$padj<0.05 & abs(res01$log2FoldChange)>2
+write.csv(res01[ord.inds,], file = "signif01_result.csv")
+```
+
+```{r}
+palette(c("gray", "blue"))
+plot(res01$log2FoldChange, -log(res01$padj),col=res01$sig+1)
+abline(v=c(-2,2), col="darkgray", lty=2)
+abline(h=-log(0.1), col="darkgray")
+```
+
+```{r}
+
+```
+
+

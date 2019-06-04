@@ -1,0 +1,145 @@
+---
+title: "class15"
+author: "zqh"
+date: "May 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load data
+```{r}
+library(DESeq2)
+metaFile <- "GSE37704_metadata.csv"
+countFile<- "GSE37704_featurecounts.csv"
+colData = read.csv(metaFile, row.names)
+countData = read.csv(countFile, row.names = 1)
+```
+
+Remove the first column countData$length, which is not used in the analysis
+```{r}
+countData_trim <- as.matrix(countData[,-1])
+head(countData_trim)
+```
+
+remove rows with 0 counts
+```{r}
+nonzero.rows <- rowSums(countData_trim)!=0
+countData_trim0 <- countData_trim[nonzero.rows,]
+head(countData_trim0)
+nrow(countData_trim0)
+```
+```{r}
+dds = DESeqDataSetFromMatrix(countData = countData_trim0,
+                             colData= colData,
+                             design = ~condition)
+dds = DESeq(dds)
+```
+result summary
+```{r}
+res <- results(dds, contrast = c("condition", "hoxa1_kd", "control_sirna"))
+summary(res)
+```
+volcano plot
+```{r}
+
+# Make a color vector for all genes
+mycols <- rep("gray", nrow(res) )
+
+# Color red the genes with absolute fold change above 2
+mycols[ abs(res$log2FoldChange) > 2 ] <- "red"
+
+# Color blue those with adjusted p-value less than 0.01
+#  and absolute fold change more than 2
+inds <- (res$padj<0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+plot( res$log2FoldChange, -log(res$padj), col=mycols, xlab="Log2(FoldChange)", ylab="-Log(P-value)" )
+abline(v=c(-2,2), col="black", lty=2)
+abline(h=-log(0.01),col = "blue" )
+```
+add annotation 
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+columns(org.Hs.eg.db)
+
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column= "SYMBOL",
+                    multiVals="first")
+
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+
+res$name =   mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="UNIGENE",
+                    multiVals="first")
+
+head(res, 10)
+```
+
+write annotated data into csv
+```{r}
+res = res[order(res$pvalue),]
+write.csv(res, file="deseq_results.csv")
+```
+
+pathways
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+attributes(keggres)
+```
+look at the first few down pathways
+```{r}
+head(keggres$less)
+```
+generate pathview png file
+```{r}
+
+pathview(gene.data=foldchanges, pathway.id="hsa04110")
+```
+![](hsa04110.pathview.png)
+
+pathview plot of top 5 pathwyas
+```{r}
+## Focus on top 5 upregulated pathways here for demo purposes only
+keggrespathways <- rownames(keggres$greater)[1:5]
+
+# Extract the 8 character long IDs part of each string
+keggresids = substr(keggrespathways, start=1, stop=8)
+keggresids
+
+pathview(gene.data=foldchanges, pathway.id=keggresids, species="hsa")
+```
+

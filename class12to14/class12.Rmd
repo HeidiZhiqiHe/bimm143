@@ -1,0 +1,50 @@
+---
+title: "class12"
+author: "zqh"
+date: "May 9, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Obtain and read "1hsg" from pdb
+PDB file stored as hiv 
+
+```{r}
+library(bio3d)
+file.name <- get.pdb("1hsg")
+hiv <-read.pdb(file.name)
+hiv
+```
+
+Q1: The two non protein resid are HOH and MK1. They are ligands. 
+seperate protein and ligand into different pdb file to prepare fore autodock
+```{r}
+prot <- atom.select(hiv, "protein", value = TRUE)
+lig <- atom.select(hiv, "ligand", value = TRUE)
+
+write.pdb(prot, file = "1hsg_protein.pdb")
+write.pdb(lig, file = "1hsg_ligand.pdb")
+
+```
+
+process the all.pdbqt from autodock into pdb
+```{r}
+res <- read.pdb("all.pdbqt", multi=TRUE)
+write.pdb(res, "result.pdb")
+```
+
+assess the docking result
+```{r}
+ori <-read.pdb("1hsg_ligand.pdbqt")
+rmsd(ori,res)
+```
+
+nma in bio3d
+```{r}
+pdb2 <- read.pdb("1hel")
+modes <- nma(pdb2)
+mktrj(modes, mode=7, file="mode_7.pdb")
+```
