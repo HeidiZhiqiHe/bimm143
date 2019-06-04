@@ -2,7 +2,7 @@
 title: "Class6RFunction"
 author: "zqh"
 date: "April 18, 2019"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -38,35 +38,6 @@ return (result)
 }
 
 philCheck(TRUE, FALSE, FALSE)
-```
-
-```{r}
-truthmatrix <- matrix(nrow=8, ncol = 3, byrow = FALSE)
-
-rown <-1:8
-rownl <- length(rown)
-for (i in rown){
-  if ((i)/(rownl/2)<=1){
-    truthmatrix [i ,1] <- TRUE
-  }
-  else{
-    truthmatrix[i ,1] <-FALSE
-  }
-  if ((i-1)%%4<2){
-    truthmatrix [i,2] <-TRUE
-  }
-  else{
-    truthmatrix [i,2] <- FALSE
-  }
-  if (i%%2==1){
-    truthmatrix [i,3] <- TRUE
-  }
-  else{
-    truthmatrix [i,3] <-FALSE
-  }
-  
-}
-
 ```
 
 ```{r}
