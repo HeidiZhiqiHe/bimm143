@@ -1,0 +1,51 @@
+---
+title: "findagene"
+author: "zqh"
+date: "June 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(bio3d)
+#"fag_fasta" is the fasta file generated from sequence alignment
+seq <- read.fasta("fag_fasta")
+#ide is the sequence identity matrix generated from seq
+ide <- seqidentity(seq)
+#hetmp is generated from ide
+#margin is adjusted to show the full plot
+heatmap(ide,margins = c(10,10))
+```
+
+```{r}
+rap <-read.fasta("R.americana.fasta")
+```
+
+
+
+```{r}
+blast_res <-blast.pdb(rap)
+res_df <- blast_res$hit.tbl
+res_ano <-pdb.annotate(res_df$subjectids, anno.terms = c("experimentalTechnique","resolution", "source"))
+res_ano[-grep("Homo sapiens", res_ano$source),]
+```
+
+```{r}
+rownames(res_df)<-res_df$subjectids
+res_merge <-merge(res_ano, res_df[,c("evalue", "identity")],by="row.names")
+res_merge_trim1 <-res_merge[-grep("Homo sapiens", res_merge$source),]
+
+```
+
+```{r}
+
+duplicated(res_merge_trim1$source)
+res_merge_trim2 <- res_merge_trim1[!duplicated(res_merge_trim1$source),]
+res_table<-res_merge_trim2[c(1,4,5),]
+write.csv()
+```
+
+

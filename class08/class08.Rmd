@@ -1,0 +1,107 @@
+---
+title: "class08"
+author: "zqh"
+date: "April 25, 2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+tmp <- c(rnorm(30,-1), rnorm(30,1))
+x <- cbind(x=tmp, y=rev(tmp))
+
+##kmeans
+
+km<-kmeans(x, centers = 2, nstart = 20)
+palette(c("red", "grey"))
+
+plot(x,col = km$cluster )
+# 30 in each cluster
+#membership is recorded in clustering vector
+#cluster center at cluster means: (-2.94, 2.98) and (2.99, -2.94)
+par(new=TRUE)
+points(km$centers, pch=18, col = "blue", cex=3)
+```
+
+```{r}
+##hierarchical clustering
+dist_matrix <- dist(x)
+hc <- hclust(d=dist_matrix)
+plot(hc)
+
+abline(h=6, col="red")
+#cut by height
+plot (x, col = cutree(hc, k=2))
+#cut by cluster: cutree(hc, k=n)
+```
+
+```{r}
+# Step 1. Generate some example data for clustering
+x <- rbind(
+ matrix(rnorm(100, mean=0, sd = 0.3), ncol = 2), # c1
+ matrix(rnorm(100, mean = 1, sd = 0.3), ncol = 2), # c2
+ matrix(c(rnorm(50, mean = 1, sd = 0.3), # c3
+ rnorm(50, mean = 0, sd = 0.3)), ncol = 2))
+colnames(x) <- c("x", "y")
+# Step 2. Plot the data without clustering
+plot(x)
+# Step 3. Generate colors for known clusters
+# (just so we can compare to hclust results)
+col <- as.factor( rep(c("c1","c2","c3"), each=50) )
+plot(x, col=col)
+palette(c("red", "blue", "green"))
+
+dist2 <- dist(x)
+hc2 <- hclust(dist2)
+plot(hc2)
+plot(x, col=cutree(hc2, k=2),main = "hc k=2")
+plot(x, col=cutree(hc2, k=3),main = "hc k=3")
+```
+
+```{r}
+mydata <- read.csv("https://tinyurl.com/expression-CSV",
+ row.names=1) 
+pca <- prcomp(t(mydata), scale=TRUE)
+attributes(pca)
+colvec <- colnames(mydata)
+#assign color
+colvec[grep("wt", colvec)] <-"red"
+colvec[grep("ko",colvec)] <-"blue"
+#variant 
+pca.var <- pca$sdev^2
+#percent variant
+pca.var.per <- round(pca.var/sum(pca.var)*100,1)
+
+#plot
+plot(pca$x[,1], pca$x[,2], col=colvec, 
+     xlab=paste0("PC1 (", pca.var.per[1], "%)"),
+    ylab=paste0("PC2 (", pca.var.per[2], "%)")) 
+```
+
+
+```{r}
+uk <- read.csv("UK_foods.csv", header = TRUE, sep=",")
+rownames(uk)<-uk[,1]
+uk <- uk[,-1]
+#barplot
+barplot(as.matrix(uk), beside=F, col=rainbow(17))
+ 
+ #pca
+ pca2 <- prcomp(t(uk))
+ summary(pca2)
+ plot(pca2$x[,1],pca2$x[,2], xlab="PC1", ylab="PC2", xlim = c(-270,500))
+ text(pca2$x[,1],pca2$x[,2],colnames(uk),col=rainbow(4))
+ 
+ #percent variance
+ v_uk <- round(pca2$sdev^2/sum(pca2$sdev^2)*100)
+ 
+ z<-summary(pca)
+ z$importance
+ barplot (v_uk, xlab = "principle component", ylab = "percent variation")
+
+ ## Lets focus on PC1 as it accounts for > 90% of variance 
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca2$rotation[,1], las=2 )
+```
